@@ -1,21 +1,17 @@
-// use this to decode a token and get the user's information out of it
 import decode from 'jwt-decode';
+import { useMutation } from '@apollo/client';
+import { LOGIN_USER, ADD_USER } from './mutations'; // Import your GraphQL mutations
 
-// create a new class to instantiate for a user
 class AuthService {
-  // get user data
   getProfile() {
     return decode(this.getToken());
   }
 
-  // check if user's logged in
   loggedIn() {
-    // Checks if there is a saved token and it's still valid
     const token = this.getToken();
-    return !!token && !this.isTokenExpired(token); // handwaiving here
+    return !!token && !this.isTokenExpired(token);
   }
 
-  // check if token is expired
   isTokenExpired(token) {
     try {
       const decoded = decode(token);
@@ -28,20 +24,41 @@ class AuthService {
   }
 
   getToken() {
-    // Retrieves the user token from localStorage
     return localStorage.getItem('id_token');
   }
 
-  login(idToken) {
-    // Saves user token to localStorage
-    localStorage.setItem('id_token', idToken);
-    window.location.assign('/');
+  async login(email, password) {
+    try {
+      const { data } = await useMutation(LOGIN_USER, {
+        variables: { email, password },
+      });
+
+      const idToken = data.login.token;
+      localStorage.setItem('id_token', idToken);
+      window.location.assign('/');
+    } catch (error) {
+      console.error('Login failed:', error.message);
+      // Handle login failure (e.g., show error message)
+    }
+  }
+
+  async signup(username, email, password) {
+    try {
+      const { data } = await useMutation(ADD_USER, {
+        variables: { username, email, password },
+      });
+
+      const idToken = data.addUser.token;
+      localStorage.setItem('id_token', idToken);
+      window.location.assign('/');
+    } catch (error) {
+      console.error('Signup failed:', error.message);
+      // Handle signup failure (e.g., show error message)
+    }
   }
 
   logout() {
-    // Clear user token and profile data from localStorage
     localStorage.removeItem('id_token');
-    // this will reload the page and reset the state of the application
     window.location.assign('/');
   }
 }
